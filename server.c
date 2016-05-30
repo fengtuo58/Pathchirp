@@ -158,7 +158,7 @@ int Compute_chirp_queue_transmit(Udp_Probe_Pkt *pkt_array,double*pkt_array_delay
     chirp_len = pkt_array->hdr.chirp_len;
 
     double *pkt_array_transmit = NULL;
-    pkt_array_transmit =(double*) malloc(chirp_len * sizeof(double));
+    pkt_array_transmit =(double*) malloc((chirp_len-1) * sizeof(double));
     if(NULL==pkt_array_transmit){
         perror("malloc: pkt_array_transmit");
         PRINT_CHK_FLAG;
@@ -174,7 +174,7 @@ int Compute_chirp_queue_transmit(Udp_Probe_Pkt *pkt_array,double*pkt_array_delay
 	{
 	//	printf("Udp_Probe_Pkt=%d", sizeof(Udp_Probe_Pkt));
 	R[index]=BYTETOBIT(sizeof(Udp_Probe_Pkt)) / ( (double) ( (pkt_array+index+1)->hdr.snd_time_sec ) + (double)((pkt_array+index+1)->hdr.snd_time_usec)/1.0E6-  ( (double) ( (pkt_array+index)->hdr.snd_time_sec ) + (double)( (pkt_array+index)->hdr.snd_time_usec)/1.0E6 ));
-	printf("\nRate=%lf\n", R[index]);
+	printf("\n,[%d]snd_time_usec=%ld,[%d] snd_time_usec=%ld Rate=%lf\n", index, (pkt_array+index)->hdr.snd_time_usec, index+1, (pkt_array+index+1)->hdr.snd_time_usec ,  R[index]);
 	}
 	return 1;
 
@@ -212,18 +212,18 @@ double EstimateBand(Udp_Probe_Pkt *pkt_array,double *pkt_array_delay,double *pkt
 		if(pkt_array_delay[i] < pkt_array_delay[i+1]) 
 		{	
 //printf("\n%d\n", i) ;
-			endIndex=excursion(pkt_array,i,pkt_array_delay);
+			endIndex=excursion(pkt_array, i, pkt_array_delay);
 		//	printf("\nendindex=%d\n", endIndex);
 //printf("\n.\n") ;
 			if( (endIndex > i) && (endIndex <= ChirpLength-2))
 			 {	
 				for (s=i; s<endIndex-1; s++)
 					{	
-						if ( pkt_array_delay[s]<pkt_array_delay[s+1] ) E[s]=pkt_array_Rate[s];  
-					 }	
+						if ( pkt_array_delay[s] <= pkt_array_delay[s+1] ) E[s]=pkt_array_Rate[s];  
+					}	
 			 }			
 
-			 if (endIndex==ChirpLength-1)
+			 if (endIndex == ChirpLength-1)
 			 {	
 					for ( s=i; s<ChirpLength-1; s++) E[s]=pkt_array_Rate[i];
 				    	l=i;	  
@@ -237,7 +237,7 @@ double EstimateBand(Udp_Probe_Pkt *pkt_array,double *pkt_array_delay,double *pkt
 //printf("\n.\n") ;
 	 double sumDelay=0;
 	 double D=0,deltak=0;
-
+//     l=ChirpLength-2;//fengtuo2016530
 	 for(s=0; s<ChirpLength-2; s++)
 	 {
 		 if(E[s]==0) 

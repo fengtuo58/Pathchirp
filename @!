@@ -1,0 +1,9 @@
+#include<sys/time.h>
+#include<unistd.h>
+main(){
+struct tim tv;
+struct timezone tz;
+gettimeofday (&tv , 0);
+printf(“tv_sec; %d\n”, tv,.tv_sec) ;
+printf(“tv_usec; %d\n”,tv.tv_usec);
+}
