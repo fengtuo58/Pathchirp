@@ -45,7 +45,7 @@ int main(int argc,char* argv[])
 
         //malloc inside recv_chirp
         ret = recv_chirp(sd,(  Udp_Probe_Pkt **) &pkt_array);
-	//	printf("\npkt_array = %d\n", pkt_array);
+
         //print 
         if(NULL!=pkt_array){
             int pkt_sum = pkt_array->hdr.chirp_len;
@@ -60,16 +60,14 @@ int main(int argc,char* argv[])
         }
 */
         close_socket(sd);
-#if 1
 		double*pDelay=0;
 	    Compute_chirp_queue_delay(pkt_array,&pDelay);
 		double*pRate=0;
-		printf("%lf:",pkt_array );
 		Compute_chirp_queue_transmit(pkt_array,pDelay,&pRate);
 double estimate	=	EstimateBand(pkt_array,pDelay,pRate);
-printf("esimate available band=%lf\n",estimate);
+//printf("esjghjkfghjimate=%lf\n",estimate);
 
-#endif
+
 
     }
   

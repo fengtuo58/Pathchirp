@@ -148,7 +148,9 @@ int recv_udp_pkt(int sd, Udp_Probe_Pkt *pkt)
     }
 
     memset(buff, 0, MAX_PKT_SIZE);
-    ret = recvfrom(sd, buff, MAX_PKT_SIZE-1, 0, (struct sockaddr*)&src, &addrlen);
+  //  ret = recvfrom(sd, buff, MAX_PKT_SIZE-1, 0, (struct sockaddr*)&src, &addrlen);
+   ret = recvfrom(sd, pkt, sizeof(Udp_Probe_Pkt), 0, (struct sockaddr*)&src, &addrlen);
+
     if(ret<-1){
         perror("recv_udp_pkt():recvfrom().\n");
         return -1;
@@ -156,10 +158,12 @@ int recv_udp_pkt(int sd, Udp_Probe_Pkt *pkt)
     else{
         struct timeval cur_timestamp;
         ret = gettimeofday(&cur_timestamp, (struct timezone *) 0);
-
-        memset(pkt, 0, sizeof(Udp_Probe_Pkt));
-        memcpy(pkt, buff, sizeof(Udp_Probe_Pkt));
-
+	
+	
+	                                         	//interface time
+	//	memset(pkt, 0, sizeof(Udp_Probe_Pkt));
+	 // memcpy(pkt, buff, sizeof(Udp_Probe_Pkt));
+//printf("in recv_udp_pkt ,%ld, %ld", )
         pkt->hdr.rcv_time_sec =  ((uint32_t) cur_timestamp.tv_sec);
         pkt->hdr.rcv_time_usec = ((uint32_t) cur_timestamp.tv_usec);
     }
@@ -292,7 +296,7 @@ int recv_chirp(int sd, Udp_Probe_Pkt ** ppkt_array)
 
     Udp_Probe_Pkt rcv_pkt;
     Udp_Probe_Pkt *p = NULL;
-
+//printf("p=%ld", p);
     while(1){
 
         ret = recv_udp_pkt(sd, &rcv_pkt);
@@ -309,23 +313,31 @@ int recv_chirp(int sd, Udp_Probe_Pkt ** ppkt_array)
             }
             else{
                 memset(p, 0, (chirp_len+1)* pkt_size);
-                PRINT_CHK_FLAG;
+        //        PRINT_CHK_FLAG;
                 break;
             }
                 
         }
 		else 
 		{
+			printf("\n%ld,%ld\n", rcv_pkt.hdr.pkt_idx, rcv_pkt.hdr.chirp_len);
 		return -1;
 		}
 	}
 		
      for(int i=0;i<chirp_len;i++) 
 	 {
-	 ret=recv_udp_pkt(sd,&rcv_pkt);
-	 memcpy((void*)(p+i),(void*)&rcv_pkt,pkt_size);
+	    // ret=recv_udp_pkt(sd,&rcv_pkt);//fengutuo2016530
+    	//memcpy((void*)(p+i),(void*)&rcv_pkt,pkt_size);//fengtuo2016530
+       ret=recv_udp_pkt(sd, (p+i));
+
 	 }
+
 	 *ppkt_array=p;
+//	 printf("*ppkt_array=%d ", *ppkt_array); 
+//	 char s;
+//	 scanf("%c",s);
+//	 printf("\n*ppkt_array= %lf\n", *ppkt_array);
 	 return 1;
 	}
 
@@ -374,17 +386,19 @@ int chirp_len = 0;
     Udp_Probe_Pkt *p = pkt_array;
 	int i;
     for(i=0;i<chirp_len-1;i++){
-        cur_pkt_snd_time =  (double) (p->hdr.snd_time_sec) + (double)(p->hdr.snd_time_usec)/1.0E6;
-        next_pkt_snd_time =  (double) ((p+1)->hdr.snd_time_sec) + (double)((p+1)->hdr.snd_time_usec)/1.0E6;
+
+        cur_pkt_snd_time =  (double) ((p+i)->hdr.snd_time_sec) + (double)((p+i)->hdr.snd_time_usec)/1.0E6;
+        next_pkt_snd_time =  (double) ((p+i+1)->hdr.snd_time_sec) + (double)((p+i+1)->hdr.snd_time_usec)/1.0E6;
 
 
-        cur_pkt_rcv_time =  (double) (p->hdr.rcv_time_sec) + (double)(p->hdr.rcv_time_usec)/1.0E6;
-        next_pkt_rcv_time =  (double) ((p+1)->hdr.rcv_time_sec) + (double)((p+1)->hdr.rcv_time_usec)/1.0E6;
+        cur_pkt_rcv_time =  (double) ((p+i)->hdr.rcv_time_sec) + (double)((p+i)->hdr.rcv_time_usec)/1.0E6;
+        next_pkt_rcv_time =  (double) ((p+1+i)->hdr.rcv_time_sec) + (double)((p+1+i)->hdr.rcv_time_usec)/1.0E6;
 
         delta_snd = next_pkt_snd_time - cur_pkt_snd_time;
         delta_rcv = next_pkt_rcv_time - cur_pkt_rcv_time;
 
         *(pkt_array_delay+i) = delta_rcv - delta_snd;
+//			printf("\n delta_delay :%lf\n ", *(pkt_array_delay+i));
     }
   // pdelay=pkt_array_delay;
  *pPdelay=pkt_array_delay;
@@ -420,24 +434,24 @@ int Compute_chirp_queue_transmit(Udp_Probe_Pkt *pkt_array,double*pkt_array_delay
 	for(index=0;index <= chirp_len-2;index++)
 	{
          R[index]=BYTETOBIT(sizeof(Udp_Probe_Pkt)) / ( (double) ( (pkt_array+index+1)->hdr.snd_time_sec ) + (double)((pkt_array+index+1)->hdr.snd_time_usec)/1.0E6-  ( (double) ( (pkt_array+index)->hdr.snd_time_sec ) + (double)( (pkt_array+index)->hdr.snd_time_usec)/1.0E6 ));
-         printf("\n,[%d]snd_time_usec=%ld,[%d] snd_time_usec=%ld Rate=%lf\n", index, (pkt_array+index)->hdr.snd_time_usec, index+1, (pkt_array+index+1)->hdr.snd_time_usec ,  R[index]);
+//         printf("\n,[%d]snd_time_usec=%ld,[%d] snd_time_usec=%ld Rate=%lf\n", index, (pkt_array+index)->hdr.snd_time_usec, index+1, (pkt_array+index+1)->hdr.snd_time_usec ,  R[index]);
 	}
 
 
-//	R[index]=sizeof(Udp_Probe_Pkt)/pkt_array_delay[index];
-
-	}
+    //	R[index]=sizeof(Udp_Probe_Pkt)/pkt_array_delay[index];
 	return 1;
 
-}
+	}
+
+
 
 int excursion(Udp_Probe_Pkt *pkt_array,int i,double *pkt_array_delay/*record the delay time arrays*/)
 {
 	int j=i+1;
 	double max_q=0;
-	while( j<= pkt_array->hdr.chirp_len && ( (pkt_array_delay[j]-pkt_array_delay[i]) > max_q/F ) )
+	while(( j<= pkt_array->hdr.chirp_len-2) && ( (pkt_array_delay[j]-pkt_array_delay[i]) > max_q/F ) )
 	{
-		max_q=( max_q > pkt_array_delay[j]-pkt_array_delay[i] )? max_q:pkt_array_delay[j]-pkt_array_delay[i];
+		max_q=( max_q > (pkt_array_delay[j]-pkt_array_delay[i]) )? max_q:pkt_array_delay[j]-pkt_array_delay[i];
 		j++;
 	}
 	if(j >= pkt_array->hdr.chirp_len-2) return j;
@@ -453,8 +467,8 @@ double EstimateBand(Udp_Probe_Pkt *pkt_array,double *pkt_array_delay,double *pkt
  double E[pkt_array->hdr.chirp_len-1];
  memset(E,0,pkt_array->hdr.chirp_len-1);
  int i=1,ChirpLength=pkt_array->hdr.chirp_len;
- int endIndex,l=ChirpLength-2;
- while (i<=ChirpLength-3)
+ int endIndex,l = ChirpLength-2;
+ while (i <= ChirpLength-3)
  {
 if(pkt_array_delay[i] < pkt_array_delay[i+1]) {
    endIndex=excursion(pkt_array,i,pkt_array_delay);
@@ -462,30 +476,41 @@ if(pkt_array_delay[i] < pkt_array_delay[i+1]) {
    {
 	   for (s=i;s<endIndex-1;s++)
 	   {
-		   if ( pkt_array_delay[s]<pkt_array_delay[s+1] ) E[s]=pkt_array_Rate[s];  
+		   if ( pkt_array_delay[s] < pkt_array_delay[s+1] ) E[s]=pkt_array_Rate[s]; 
+			  printf("E[%d]:%lf", s, E[s]); 
 	   }
     }
 
    if (endIndex==ChirpLength-1)
    {
-		   for ( s=i;s<ChirpLength;s++) E[s-1]=pkt_array_Rate[s-1];
+		   for ( s=i;s<ChirpLength;s++)
+		   {
+			   E[s-1]=pkt_array_Rate[i];
+			   printf("E[%d]:%lf", s, E[s]); 
+		   }
 		   l=i;	  
    }
-   if(endIndex==i) {endIndex++;}
+   if(endIndex == i) {endIndex++;}
 	i=endIndex;
  }
 else
 	i++;
- } 
+ }
+#if 0
+ for(int j = 0; j < pkt_array->hdr.chirp_len-1; j++ )
+   printf("E[%d]:%lf", j,  E[j]);
+printf("\n");
+#endif
  double sumDelay=0;
- double D=0,detak=0;
- for(s=0; s<ChirpLength-2; s++)
+ double D=0,deltak=0;
+ for(s = 0; s <= ChirpLength-2; s++)
  {
-	 if(E[s]==0)
+	 if(E[s] == 0)
  {  //D+=pkt_array_Rate[l]*pkt_array_delay[s];sumDelay+=pkt_array_delay[s];
  deltak=  (double) ( (pkt_array+s+1)->hdr.snd_time_sec ) + (double)((pkt_array+s+1)->hdr.snd_time_usec)/1.0E6-  ( (double) ( (pkt_array+s)->hdr.snd_time_sec ) + (double)( (pkt_array+s)->hdr.snd_time_usec)/1.0E6 );
 				 D+=pkt_array_Rate[l]*deltak;
 				sumDelay+=deltak;
+      			printf("E[%d]= %lf", s, deltak*pkt_array_Rate[l]);
 
 }
  else
@@ -494,11 +519,15 @@ else
 deltak=  (double) ( (pkt_array+s+1)->hdr.snd_time_sec ) + (double)((pkt_array+s+1)->hdr.snd_time_usec)/1.0E6-  ( (double) ( (pkt_array+s)->hdr.snd_time_sec ) + (double)( (pkt_array+s)->hdr.snd_time_usec)/1.0E6 );
 				 D+=E[s]*deltak;
 				 sumDelay+=deltak;
+//	printf("E[s]==0 deta= %lf", deltak);
+
 
  }
+}
 
-//printf("sumDealy=%d,D=%d",sumDelay,D);
- D=D/sumDelay;
+ D = D / sumDelay;
+
+printf("sumDely=%lf,D=%lf",sumDelay,D);
  return D;
 }
 

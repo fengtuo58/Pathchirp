@@ -28,7 +28,8 @@
 #include <sys/socket.h>
 
 #include <arpa/inet.h>
-
+#include <sys/ioctl.h>
+#include <cmath>
 /*-----------------------------------------------------------------------------
  *  Network IP Port
  *-----------------------------------------------------------------------------*/
@@ -44,7 +45,7 @@
 #define  MAX_CHIRP_LEN  200
 
 #define  LOWEST_BITRATE 1 //Mbps
-#define  HIGHEST_BITRATE 100 //Mbps
+#define  HIGHEST_BITRATE 1000 //Mbps
 #define  SPREAD_FACTOR  1.2
 #define  DECREASE_FACTOR 1.5 
 #define  SIGNATURE_REGION_LEN 5
